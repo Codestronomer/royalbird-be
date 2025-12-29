@@ -41,6 +41,9 @@ export interface IComic extends Document {
   readers: number;
   averageRating: number;
   ratingCount: number;
+  // engagement metrics
+  likes: number;
+  likedBy: string[];
   
   // Metadata
   writer?: string;
@@ -62,6 +65,16 @@ export interface IComic extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IComicMethods {
+  generateSlug(title: string): string;
+  like(userId: string): Promise<boolean>;
+  unlike(userId: string): Promise<boolean>;
+  hasLiked(userId: string): boolean;
+  incrementViews(): Promise<void>;
+}
+
+export type ComicDocument = IComic & IComicMethods;
 
 const ComicSchema = new Schema<IComic>({
   slug: { type: String, required: true, unique: true, lowercase: true },
@@ -91,6 +104,8 @@ const ComicSchema = new Schema<IComic>({
   totalPages: { type: Number, default: 0, min: 0 },
   estimatedReadTime: String,
   views: { type: Number, default: 0, min: 0 },
+  likes: { type: Number, default: 0, min: 0 },
+  likedBy: { type: [String], default: [], index: true },
   readers: { type: Number, default: 0, min: 0 },
   averageRating: { type: Number, default: 0, min: 0, max: 5 },
   ratingCount: { type: Number, default: 0, min: 0 },
@@ -156,6 +171,31 @@ ComicSchema.methods.updateRating = async function(newRating: number) {
   this.ratingCount += 1;
   this.averageRating = (totalRating + newRating) / this.ratingCount;
   await this.save();
+};
+
+ComicSchema.methods.like = async function(userId: string): Promise<boolean> {
+  if (!this.likedBy.includes(userId)) {
+    this.likedBy.push(userId);
+    this.likes += 1;
+    await this.save();
+    return true; // Liked
+  }
+  return false; // Already liked
+};
+
+ComicSchema.methods.unlike = async function(userId: string): Promise<boolean> {
+  const index = this.likedBy.indexOf(userId);
+  if (index > -1) {
+    this.likedBy.splice(index, 1);
+    this.likes -= 1;
+    await this.save();
+    return true; // Unliked
+  }
+  return false; // Wasn't liked
+};
+
+ComicSchema.methods.hasLiked = function(userId: string): boolean {
+  return this.likedBy.includes(userId);
 };
 
 ComicSchema.post('save', async function(doc) {

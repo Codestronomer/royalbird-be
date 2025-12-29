@@ -20,7 +20,7 @@ import { GenreController } from './controllers/genre.controller';
 import { TagController } from './controllers/tag.controller';
 import { BlogController } from './controllers/blog.controller';
 import { UserController } from './controllers/users.controller';
-import response from './middlewares/response';
+// import response from './middlewares/response';
 import { protect } from './middlewares/auth';
 import { AdminStatsController } from './controllers/analytics.controller';
 
@@ -55,7 +55,7 @@ app.use(express.urlencoded({
   limit: '10mb'
 }));
 
-app.use(response);
+// app.use(response);
 
 
 app.get('/', (_req, res) => {

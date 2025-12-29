@@ -128,3 +128,7 @@ export class CreateComicDto {
   @IsOptional()
   estimatedReadTime?: string;
 }
+
+export interface LikeComicDto {
+  userId: string;
+}

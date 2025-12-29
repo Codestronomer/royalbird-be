@@ -1,13 +1,14 @@
 import { 
   JsonController, Get, Post, Put, Delete, Param, Body, 
-  QueryParams, HttpCode, NotFoundError, BadRequestError 
+  QueryParams, HttpCode, NotFoundError, BadRequestError, 
+  ForbiddenError
 } from 'routing-controllers';
 import { Service } from 'typedi';
-import { Comic } from '../models/comic.model';
+import { Comic, ComicDocument } from '../models/comic.model';
 import { ComicPage } from '../models/comicPage.model';
 import { Genre } from '../models/genre.model';
 import { Tag } from '../models/tag.model';
-import { CreateComicDto } from '../dto/comic.dto';
+import { CreateComicDto, LikeComicDto } from '../dto/comic.dto';
 import mongoose from 'mongoose';
 
 interface ComicQueryParams {
@@ -175,4 +176,109 @@ export class ComicController {
     await (comic as any).softDelete();
     return { success: true, message: 'Comic moved to archive' };
   }
+
+  // @desc    Like a comic
+    // @route   POST /api/comics/:id/like
+    // @access  Public (or Authorized for logged-in users)
+    @Post('/:id/like')
+    @HttpCode(200)
+    async likeComic(
+      @Param('id') id: string,
+      @Body() body: LikeComicDto
+    ) {
+      const { userId } = body;
+  
+      if (!userId) {
+        throw new BadRequestError('User identifier is required');
+      }
+  
+      const comic: ComicDocument = await Comic.findById(id);
+      
+      if (!comic) {
+        throw new NotFoundError('comic not found');
+      }
+  
+      if (comic.status !== 'published') {
+        throw new ForbiddenError('Cannot like unpublished comic');
+      }
+  
+      const liked = await comic.like(userId);
+  
+      return {
+        success: true,
+        message: liked ? 'comic liked successfully' : 'comic already liked',
+        data: {
+          id: comic.id,
+          likes: comic.likes,
+          liked: liked
+        }
+      };
+    }
+  
+    // @desc    Unlike a comic
+    // @route   POST /api/blogs/:id/unlike
+    // @access  Public (or Authorized for logged-in users)
+    @Post('/:id/unlike')
+    @HttpCode(200)
+    async unlikeComic(
+      @Param('id') id: string,
+      @Body() body: LikeComicDto
+    ) {
+      const { userId } = body;
+  
+      if (!userId) {
+        throw new BadRequestError('User identifier is required');
+      }
+  
+      const comic: ComicDocument = await Comic.findById(id);
+      
+      if (!comic) {
+        throw new NotFoundError('Comic not found');
+      }
+  
+      const unliked = await comic.unlike(userId);
+  
+      return {
+        success: true,
+        message: unliked ? 'Comic unliked successfully' : 'Comic was not liked',
+        data: {
+          id: comic.id,
+          likes: comic.likes,
+          unliked: unliked
+        }
+      };
+    }
+  
+    // @desc    Check if user liked a comic
+    // @route   GET /api/blogs/:id/like-status
+    // @access  Public
+    @Get('/:id/like-status')
+    @HttpCode(200)
+    async getLikeStatus(
+      @Param('id') id: string,
+      @QueryParams() query: { userId: string }
+    ) {
+      const { userId } = query;
+  
+      if (!userId) {
+        throw new BadRequestError('User identifier is required');
+      }
+  
+      const comic: ComicDocument = await Comic.findById(id);
+      
+      if (!comic) {
+        throw new NotFoundError('comic not found');
+      }
+  
+      const hasLiked = comic.hasLiked(userId);
+  
+      return {
+        success: true,
+        data: {
+          id: comic.id,
+          hasLiked,
+          likes: comic.likes
+        }
+      };
+    }
 }
