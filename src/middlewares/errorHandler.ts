@@ -4,23 +4,22 @@ import { Service } from 'typedi';
 import { ExpressErrorMiddlewareInterface, Middleware } from 'routing-controllers';
 
 @Service()
-@Middleware({ type: 'after' })
 export class AppErrorHandler implements ExpressErrorMiddlewareInterface {
   constructor() {}
 
-  error(err: any, _req: any, res: Response, _next: (err?: any) => any) {
+  error(err: any, req: any, res: Response, next: (err?: any) => any): void {
     const status = err instanceof ApiError ? err.statusCode : (err.httpCode || 500);
 
     if (err.errors && this.isClassValidatorErrors(err.errors)) {
       const formattedErrors = this.formatValidationErrors(err.errors);
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: 'Invalid Request Parameters',
         errors: formattedErrors
       });
     }
 
-    return res.status(status).json({
+    res.status(status).json({
       success: false,
       message: err.message || 'Internal Server Error',
     });

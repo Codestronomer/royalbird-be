@@ -152,7 +152,7 @@ export class ComicController {
 
     const comic = new Comic(comicPayload);
     await comic.save();
-    return { success: true, data: comic };
+    return { success: true, data: comic.toObject() };
   }
 
   @Put('/:id')
@@ -164,7 +164,7 @@ export class ComicController {
     );
 
     if (!updatedComic) throw new NotFoundError('Comic not found');
-    return { success: true, data: updatedComic };
+    return { success: true, data: updatedComic.toObject() };
   }
 
   @Delete('/:id')

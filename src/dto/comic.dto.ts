@@ -67,7 +67,7 @@ export class CreateComicDto {
   @IsOptional()
   status?: 'draft' | 'published' | 'scheduled' | 'archived';
 
-  @IsEnum(['ongoing', 'completed', 'coming soon'])
+  @IsEnum(['Ongoing', 'Completed', 'Coming Soon'])
   @IsOptional()
   availability?: 'Completed' | 'Ongoing' | 'Coming Soon'; 
 

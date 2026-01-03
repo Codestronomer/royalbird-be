@@ -44,11 +44,6 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
-// Replace the morgan line with:
-// app.use(morgan(':method :url :status :response-time ms - :res[content-length]', {
-//   stream: process.stdout,
-//   skip: (req) => req.method === 'OPTIONS'
-// }));
 
 app.use(express.urlencoded({ 
   extended: true,

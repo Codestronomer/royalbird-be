@@ -1,5 +1,5 @@
 // src/models/Comic.model.ts
-import mongoose, { Schema, Document, Query } from 'mongoose';
+import mongoose, { Schema, Document, Query, CallbackWithoutResultAndOptionalError } from 'mongoose';
 import { IGenre, ITag } from '../types/types';
 import { Genre } from './genre.model';
 import { Tag } from './tag.model';
@@ -198,17 +198,43 @@ ComicSchema.methods.hasLiked = function(userId: string): boolean {
   return this.likedBy.includes(userId);
 };
 
-ComicSchema.post('save', async function(doc) {
-  if (doc.genres) {
-    for (const genreId of doc.genres) {
-      await (Genre as any).incrementCount(genreId);
+ComicSchema.post('save', async function(doc: any, next: CallbackWithoutResultAndOptionalError) {
+  try {
+    if (doc.genres) {
+      for (const genreId of doc.genres) {
+        await (Genre as any).incrementCount(genreId);
+      }
     }
+    
+    if (doc.tags && doc.tags.length > 0) {
+      for (const tagId of doc.tags) {
+        await (Tag as any).incrementCount(tagId);
+      }
+    }
+    next(); // Explicitly call next in post hooks to be safe
+  } catch (err: any) {
+    next(err);
   }
-  
-  if (doc.tags) {
-    for (const tagId of doc.tags) {
-      await (Tag as any).incrementCount(tagId);
+});
+
+ComicSchema.pre('findOneAndDelete', { document: false, query: true }, async function (this: mongoose.Query<any, any>, next: any) {
+  try {
+    const doc = await this.model.findOne(this.getQuery());
+
+    if (doc?.genres) {
+      for (const genreId of doc.genres) {
+        await (Genre as any).decrementCount(genreId);
+      }
     }
+
+    if (doc?.tags) {
+      for (const tagId of doc.tags) {
+        await (Tag as any).decrementCount(tagId);
+      }
+    }
+    next();
+  } catch (err: any) {
+    next(err);
   }
 });
 
@@ -217,20 +243,5 @@ ComicSchema.post('findOneAndUpdate', async function(doc) {
   // This would need more complex logic to track changes
 });
 
-ComicSchema.pre('findOneAndDelete', async function (this: Query<any, any>) {
-  const doc = await this.model.findOne(this.getQuery());
-
-  if (doc?.genres) {
-    for (const genreId of doc.genres) {
-      await (Genre as any).decrementCount(genreId);
-    }
-  }
-
-  if (doc?.tags) {
-    for (const tagId of doc.tags) {
-      await (Tag as any).decrementCount(tagId);
-    }
-  }
-});
 
 export const Comic = mongoose.model<IComic>('Comic', ComicSchema);
